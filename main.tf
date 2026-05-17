@@ -7,9 +7,9 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "araizaz-minecraft-backups"
-    key    = "mc-world/key"
-    region = "us-east-1"
+    bucket       = "araizaz-minecraft-backups"
+    key          = "mc-world/key"
+    region       = "us-east-1"
     use_lockfile = true
   }
 }
@@ -28,8 +28,8 @@ resource "aws_vpc" "minecraft_vpc" {
 
 resource "aws_internet_gateway" "minecraft_igw" {
   vpc_id = aws_vpc.minecraft_vpc.id
-	
-	tags = { Name = "minecraft-igw" }
+
+  tags = { Name = "minecraft-igw" }
 }
 
 resource "aws_subnet" "minecraft_public" {
@@ -38,7 +38,7 @@ resource "aws_subnet" "minecraft_public" {
   map_public_ip_on_launch = true
   availability_zone       = "us-east-1a"
 
-	tags = { Name = "minecraft-public-subnet" }
+  tags = { Name = "minecraft-public-subnet" }
 }
 
 resource "aws_route_table" "minecraft_public_rt" {
@@ -48,8 +48,8 @@ resource "aws_route_table" "minecraft_public_rt" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.minecraft_igw.id
   }
-	
-	tags = { Name = "minecraft-public-rt" }
+
+  tags = { Name = "minecraft-public-rt" }
 
 }
 
@@ -64,7 +64,7 @@ resource "aws_security_group" "minecraft_sg" {
   vpc_id      = aws_vpc.minecraft_vpc.id
 
   ingress {
-		description = "SSH"
+    description = "SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -72,7 +72,7 @@ resource "aws_security_group" "minecraft_sg" {
   }
 
   ingress {
-		description = "Custom TCP"
+    description = "Custom TCP"
     from_port   = 25565
     to_port     = 25565
     protocol    = "tcp"
@@ -86,17 +86,17 @@ resource "aws_security_group" "minecraft_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-	tags = { Name = "minecraft-server-sg" }
+  tags = { Name = "minecraft-server-sg" }
 }
 
 
 resource "aws_instance" "minecraft_server" {
-  ami                  = var.ami_id
-  instance_type        = var.instance_type
-  key_name             = var.key_name
-  subnet_id = aws_subnet.minecraft_public.id
+  ami                    = var.ami_id
+  instance_type          = var.instance_type
+  key_name               = var.key_name
+  subnet_id              = aws_subnet.minecraft_public.id
   vpc_security_group_ids = [aws_security_group.minecraft_sg.id]
-  iam_instance_profile = "LabInstanceProfile"
+  iam_instance_profile   = "LabInstanceProfile"
 
   root_block_device {
     volume_size = 20 # Extra space for logs and world data
