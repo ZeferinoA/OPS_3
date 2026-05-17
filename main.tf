@@ -118,9 +118,13 @@ resource "aws_instance" "minecraft_server" {
     Name = "minecraft-server"
   }
 
-  # provisioner "local-exec" {
-  #   command = "ansible-playbook -i ${self.public_ip}, playbook.yml"
-  # }
+  provisioner "local-exec" {
+    command = <<EOT
+      echo "Waiting for EC2 to boot..."
+      sleep 90 
+      ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i '${self.public_ip},' playbook.yml -u ubuntu --private-key ~/.ssh/cs312-key2.pem
+    EOT
+  }
 
 }
 

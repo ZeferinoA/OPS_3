@@ -1,10 +1,11 @@
 ---
 - name: Install Docker and AWS CLI
-  ansible.builtin.dnf:
+  ansible.builtin.apt:
     name:
-      - docker
+      - docker.io
       - awscli
     state: present
+    update_cache: true
 
 - name: Start and enable Docker
   ansible.builtin.systemd:
