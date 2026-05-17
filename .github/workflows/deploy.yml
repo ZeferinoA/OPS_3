@@ -49,7 +49,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }} 
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -64,7 +64,7 @@ jobs:
           echo "Building custom image from local Dockerfile..."
           # The '.' tells Docker to build using the Dockerfile in the root of the repository
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          
+
           echo "Applying 'latest' tag for Ansible ease-of-use..."
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
@@ -75,7 +75,7 @@ jobs:
         run: |
           echo "Starting the custom Minecraft container..."
           docker run -d --name mc-smoke -e EULA=TRUE -e MEMORY=1G $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          
+
           # Polling loop to wait for the Java server to fully initialize
           SUCCESS=0
           for i in $(seq 1 15); do
@@ -88,10 +88,10 @@ jobs:
               break
             fi
           done
-          
+
           # Clean up the test container so it doesn't block future jobs
           docker rm -f mc-smoke
-          
+
           # If the loop finished without finding 'Done', fail the pipeline
           if [ $SUCCESS -eq 0 ]; then
             echo "Smoke test failed: Server did not output 'Done' within 150 seconds."
@@ -105,6 +105,6 @@ jobs:
         run: |
           echo "Pushing tagged version to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          
+
           echo "Pushing 'latest' tag to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest

@@ -1,6 +1,6 @@
 ---
 # Networking & RAM
-minecraft_port: 25565
+minecraft_mc_port: 25565
 minecraft_memory: "2G"
 
 # AWS Specifics (The LabInstanceProfile handles the actual keys)
