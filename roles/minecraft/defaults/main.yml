@@ -1,13 +1,13 @@
 ---
 # Networking & RAM
-mc_port: 25565
-mc_memory: "2G"
+minecraft_port: 25565
+minecraft_memory: "2G"
 
 # AWS Specifics (The LabInstanceProfile handles the actual keys)
-aws_region: "us-east-1"
-s3_bucket: "araizaz-minecraft-backups"
-ecr_registry: "891377109524.dkr.ecr.us-east-1.amazonaws.com/minecraft-server-repo"
-image_tag: "latest"
+minecraft_aws_region: "us-east-1"
+minecraft_s3_bucket: "araizaz-minecraft-backups"
+minecraft_ecr_registry: "891377109524.dkr.ecr.us-east-1.amazonaws.com/minecraft-server-repo"
+minecraft_image_tag: "latest"
 
 # Filesystem
-mc_root_dir: "/data"
+minecraft_root_dir: "/data"

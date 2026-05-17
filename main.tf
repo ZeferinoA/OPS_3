@@ -134,4 +134,3 @@ resource "aws_ecr_repository" "minecraft_repo" {
     scan_on_push = true
   }
 }
-
