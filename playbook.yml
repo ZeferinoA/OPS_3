@@ -1,0 +1,6 @@
+---
+- name: Deploy Minecraft Infrastructure
+  hosts: all
+  become: true
+  roles:
+    - minecraft

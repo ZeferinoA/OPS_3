@@ -1,0 +1,47 @@
+---
+- name: Install Docker and AWS CLI
+  ansible.builtin.dnf:
+    name: 
+      - docker
+      - awscli
+    state: present
+
+- name: Start and enable Docker
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Create Minecraft data directory
+  ansible.builtin.file:
+    path: "{{ mc_root_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Restore World Data from S3
+  # Requirement Check: RESTORE before STARTING
+  # Using 'aws s3 sync' ensures idempotency (only downloads new/changed files)
+  ansible.builtin.command:
+    cmd: "aws s3 sync s3://{{ s3_bucket }}/ {{ mc_root_dir }}/"
+  register: s3_res
+  changed_when: "'download:' in s3_res.stdout"
+
+- name: Authenticate Docker to ECR
+  # We use the LabInstanceProfile permissions here
+  ansible.builtin.shell: |
+    aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ ecr_registry }}
+  changed_when: false
+
+- name: Pull and Start Minecraft Container
+  community.docker.docker_container:
+    name: minecraft-server
+    image: "{{ ecr_registry }}:{{ image_tag }}"
+    state: started
+    restart_policy: always
+    ports:
+      - "{{ mc_port }}:25565"
+    volumes:
+      - "{{ mc_root_dir }}:/data"
+    env:
+      EULA: "TRUE"
+      MEMORY: "{{ mc_memory }}"
