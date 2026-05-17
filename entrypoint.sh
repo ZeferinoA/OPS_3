@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "enable-rcon=true" >> /data/server.properties
 echo "rcon.password=${RCON_PASSWORD}" >> /data/server.properties
 echo "rcon.port=25575" >> /data/server.properties

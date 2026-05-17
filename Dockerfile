@@ -27,6 +27,9 @@ RUN mkdir -p /opt/minecraft && \
 # Add entrypoint script
 COPY entrypoint.sh /opt/minecraft/entrypoint.sh
 
+# Strip Windows line endings (CRLF to LF) and make the script executable
+RUN sed -i 's/\r$//' /opt/minecraft/entrypoint.sh && chmod +x /opt/minecraft/entrypoint.sh
+
 # Apply permissions for the non-root user
 RUN chown -R mcuser:mcgroup /data /opt/minecraft && \
     chmod +x /opt/minecraft/entrypoint.sh
