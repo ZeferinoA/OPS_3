@@ -13,11 +13,12 @@
     state: started
     enabled: true
 
-- name: Create Minecraft data directory
+- name: Create Minecraft directory on host
   ansible.builtin.file:
     path: "{{ minecraft_root_dir }}"
     state: directory
-    mode: '0755'
+    mode: '0777'
+    recurse: yes
 
 - name: Restore World Data from S3
   ansible.builtin.command:
@@ -33,6 +34,12 @@
     executable: /bin/bash
   changed_when: false
 
+- name: Accept Minecraft EULA
+  ansible.builtin.copy:
+    dest: "{{ minecraft_root_dir }}/eula.txt"
+    content: "eula=true\n"
+    mode: '0644'
+
 - name: Pull and Start Minecraft Container
   community.docker.docker_container:
     name: minecraft-server
@@ -46,3 +53,4 @@
     env:
       EULA: "TRUE"
       MEMORY: "{{ minecraft_memory }}"
+      MOTD: "Araizaz World"
