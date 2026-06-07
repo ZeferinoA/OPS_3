@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft-service
+  labels:
+    app: minecraft # Added for the ServiceMonitor to select
+spec:
+  type: LoadBalancer
+  ports:
+    - name: game
+      port: 25565
+      targetPort: 25565
+      protocol: TCP
+    - name: metrics # Added to expose the exporter to Prometheus
+      port: 9150
+      targetPort: 9150
+      protocol: TCP
+  selector:
+    app: minecraft
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minecraft-server
+spec:
+  serviceName: "minecraft-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft
+  template:
+    metadata:
+      labels:
+        app: minecraft
+    spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
+      initContainers:
+        - name: eula-handler
+          image: 891377109524.dkr.ecr.us-east-1.amazonaws.com/minecraft-server-repo:v1.0.8
+          command: ['sh', '-c', 'echo "eula=true" > /data/eula.txt']
+          volumeMounts:
+            - name: world-data
+              mountPath: /data
+      containers:
+        - name: minecraft
+          image: 891377109524.dkr.ecr.us-east-1.amazonaws.com/minecraft-server-repo:v1.0.8
+          tty: true
+          stdin: true
+          ports:
+            - containerPort: 25565
+              name: client
+          resources:
+            requests:
+              memory: "2048Mi"
+              cpu: "500m"
+            limits:
+              memory: "4096Mi"
+              cpu: "1"
+          env:
+            - name: EULA
+              value: "true"
+            - name: MOTD
+              value: "Araizaz World"
+            - name: MEMORY
+              value: "3G"
+          startupProbe:
+            tcpSocket:
+              port: client
+            periodSeconds: 10
+            failureThreshold: 18
+          readinessProbe:
+            tcpSocket:
+              port: client
+            periodSeconds: 15
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: client
+            periodSeconds: 15
+            failureThreshold: 3
+          volumeMounts:
+            - name: world-data
+              mountPath: /data
+        
+        # --- NEW SIDECAR CONTAINER ---
+        - name: mc-exporter
+          image: itzg/mc-monitor:latest
+          args:
+            - "export-for-prometheus"
+            - "--servers"
+            - "127.0.0.1:25565"
+            - "--port"
+            - "9150"
+          ports:
+            - containerPort: 9150
+              name: metrics
+          resources: # Strictly limited for AWS Academy constraints
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+      
+      volumes:
+        - name: world-data
+          hostPath:
+            path: /data
+            type: DirectoryOrCreate

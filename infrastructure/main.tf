@@ -71,7 +71,7 @@ resource "aws_security_group" "minecraft_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["71.95.109.109/32"]
   }
 
   #tfsec:ignore:aws-ec2-no-public-ingress-sgr Minecraft must be accessible to the public internet

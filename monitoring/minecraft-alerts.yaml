@@ -1,0 +1,43 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: minecraft-alerts
+  namespace: monitoring
+  labels:
+    release: observability
+spec:
+  groups:
+    - name: minecraft.rules
+      rules:
+        # 1. SERVICE IMPACT: Player-visible downtime
+        - alert: MinecraftServerDown
+          expr: max(minecraft_status_healthy{server_host="127.0.0.1"}) == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Minecraft server is unreachable"
+            description: "Players cannot connect to the server."
+            runbook_url: "runbook.md#recovery-service-downtime"
+
+        # 2. NODE SATURATION: Memory approaching system limits
+        - alert: HostMemoryPressure
+          expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Host memory usage critical"
+            description: "System memory is above 85%. Likely OOM risk."
+            runbook_url: "runbook.md#recovery-memory-pressure"
+
+        # 3. DEPLOYMENT INSTABILITY: Pod crash looping
+        - alert: MinecraftPodCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total{container="minecraft"}[15m]) > 2
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Minecraft container is crash-looping"
+            description: "The container has restarted more than twice in 15 minutes."
+            runbook_url: "runbook.md#recovery-crash-looping"

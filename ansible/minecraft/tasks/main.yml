@@ -1,0 +1,62 @@
+---
+- name: Install AWS CLI
+  ansible.builtin.apt:
+    name:
+      - awscli
+    state: present
+    update_cache: true
+
+- name: Create Minecraft directory on host
+  ansible.builtin.file:
+    path: "{{ minecraft_root_dir }}"
+    state: directory
+    mode: '0777'
+    recurse: yes
+
+- name: Restore World Data from S3
+  ansible.builtin.command:
+    cmd: "aws s3 sync s3://{{ minecraft_s3_bucket }}/ {{ minecraft_root_dir }}/"
+  register: s3_res
+  changed_when: "'download:' in s3_res.stdout"
+
+- name: Install k3s
+  ansible.builtin.shell: curl -sfL https://get.k3s.io | sh -
+  args:
+    creates: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for k3s to become ready
+  ansible.builtin.command: k3s kubectl get nodes
+  register: k3s_status
+  retries: 5
+  delay: 10
+  until: k3s_status.rc == 0
+  changed_when: false
+
+- name: Copy Helm Chart to the server
+  ansible.builtin.copy:
+    src: files/minecraft-chart/
+    dest: /opt/minecraft-chart/
+    mode: '0755'
+
+- name: Fetch AWS ECR authorization token
+  ansible.builtin.shell: aws ecr get-login-password --region {{ minecraft_aws_region }}
+  register: ecr_token
+  changed_when: false
+
+- name: Install Helm CLI
+  ansible.builtin.shell: curl -sL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Clean up old manual secret (so Helm can take over)
+  ansible.builtin.shell: |
+    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+    kubectl delete secret ecr-registry-secret --ignore-not-found
+  changed_when: false
+
+- name: Deploy Minecraft via Helm
+  ansible.builtin.shell: |
+    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+    helm upgrade --install minecraft-server /opt/minecraft-chart/ \
+      --set image.pullToken={{ ecr_token.stdout }}
+  changed_when: true
